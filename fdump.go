@@ -12,15 +12,16 @@ import (
 	"flag"
 	"fmt"
 	"hdump"
+	"io"
 	"log"
 	"os"
 )
 
 const usageHdr = "usage: fdump -c <count> -o <offset> -h <file>"
-const buffSize = 16 * 8 //must be a multiple of 16
+const buffSize = 16 * 4 //must be a multiple of 16
 
-var buffArray [buffSize]byte
-var buff = buffArray[:]
+// var buffArray [buffSize]byte
+// var buff = buffArray[:]
 
 func main() {
 	log.SetFlags(0) // No date/time in messages
@@ -51,16 +52,32 @@ func dump(path string, count int, offset int, hexOnly bool) {
 		log.Fatal(err)
 	}
 	defer file.Close()
-	fmt.Println("file opened")
-	fmt.Printf("type(file) = %T\n", file) // type = *os.File
+	// fmt.Println("file opened")
 	dest := hdump.NewHdumper(os.Stdout)
-	// fmt.Printf("type(dest) = %T\n", d)
 	dumpBytes(file, dest)
 }
 
-func dumpBytes (file *os.File, dest hdump.Hdumper) {
-	fmt.Println("dumping data from", file, "to", dest)
-	hdump.DumpBytes(&dest, buff)
+func dumpBytes(file *os.File, dest *hdump.Hdumper) {
+	// fmt.Println("dumping data from", file, "to", dest)
+	buff := make([]byte, buffSize)
+	for {
+		num, err := file.Read(buff)
+		if err != nil {
+			if err == io.EOF {
+				fmt.Println("got EOF")
+				if num != 0 {
+					log.Fatal("XXX: EOF with num > 0")
+				}
+				break
+			} else {
+				log.Fatal("error reading file:", err)
+			}
+		}
+		err = dest.DumpBytes(num, buff)
+		if err != nil {
+			log.Fatal("error writing dump:", err)
+		}
+	}
 }
 
 func checkFile(path string) {
@@ -69,6 +86,6 @@ func checkFile(path string) {
 		log.Fatalf("fatal: cannot stat %s", path)
 	}
 	if st.IsDir() {
-		log.Fatalf("fatal: %s is a directory", path)
+		log.Fatal("fatal: %s is a directory", path)
 	}
 }
