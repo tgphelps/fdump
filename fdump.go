@@ -64,7 +64,6 @@ func dumpBytes(file *os.File, dest *hdump.Hdumper) {
 		num, err := file.Read(buff)
 		if err != nil {
 			if err == io.EOF {
-				fmt.Println("got EOF")
 				if num != 0 {
 					log.Fatal("XXX: EOF with num > 0")
 				}
