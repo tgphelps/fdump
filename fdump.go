@@ -1,28 +1,31 @@
+// Package fdump dumps files in the traditional hex/ASCII format.
 /*
 Usage: fdump -c <count> -o <offset> -h path
-	-c <count>		Number of bytes to dump
-	-o <offset>		Byte offset to start at
-	-h				Hex dump only.
-	path			File to dump
+	-c <count>    Number of bytes to dump
+	-o <offset>   Byte offset at which to start
+	-h            Hex dump only
+	path          File to dump
 */
-
 package main
 
 import (
 	"flag"
 	"fmt"
-	"hdump"
 	"io"
 	"log"
 	"os"
+
+	"github.com/tgphelps/hdump"
 )
 
 const usageHdr = "usage: fdump -c <count> -o <offset> -h <file>"
-const buffSize = 16 * 4 //must be a multiple of 16
-const maxCount = 1024 * 1024 * 1024
 
-// var buffArray [buffSize]byte
-// var buff = buffArray[:]
+// buffSize is the number of bytes to read in one chunk.
+const buffSize = 16 * 64 //must be a multiple of 16
+
+// maxCount is the maximum number of bytes to dump. This is set to
+// a number that we don't expect to ever reach.
+const maxCount = 1024 * 1024 * 1024
 
 func main() {
 	log.SetFlags(0) // No date/time in messages
@@ -35,8 +38,6 @@ func main() {
 		usage()
 		os.Exit(1)
 	}
-	// fmt.Println("args =", flag.Args())
-
 	dump(paths[0], *pCount, *pOffset, *pHexOnly)
 }
 
@@ -45,6 +46,7 @@ func usage() {
 	flag.PrintDefaults()
 }
 
+// dump performs the file dump.
 func dump(path string, count int, offset int, hexOnly bool) {
 	// fmt.Printf("dumping file %s offset %d count %d\n", path, offset, count)
 	checkFile(path)
@@ -56,11 +58,12 @@ func dump(path string, count int, offset int, hexOnly bool) {
 	// fmt.Println("file opened")
 	dest := hdump.NewHdumper(os.Stdout)
 	if hexOnly {
-		dest.SetHexOnly()
+		dest.SetHexOnly(true)
 	}
 	dumpBytes(file, count, offset, dest)
 }
 
+// dumpBytes dumps the open file to stdout.
 func dumpBytes(file *os.File, count int, offset int, dest *hdump.Hdumper) {
 	// fmt.Println("dumping data from", file, "to", dest)
 	buff := make([]byte, buffSize)
@@ -68,7 +71,7 @@ func dumpBytes(file *os.File, count int, offset int, dest *hdump.Hdumper) {
 		dest.SetOffset(offset)
 		file.Seek(int64(offset), io.SeekStart)
 	}
-	for count > 0{
+	for count > 0 {
 		num, err := file.Read(buff)
 		if err != nil {
 			if err == io.EOF {
@@ -91,6 +94,7 @@ func dumpBytes(file *os.File, count int, offset int, dest *hdump.Hdumper) {
 	}
 }
 
+// checkFile verifies that path exists and is not a directory.
 func checkFile(path string) {
 	st, err := os.Stat(path)
 	if err != nil {
