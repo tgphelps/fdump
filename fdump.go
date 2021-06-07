@@ -15,7 +15,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/tgphelps/hdump"
+	"tgphelps.com/hdump"
 )
 
 const usageHdr = "usage: fdump -c <count> -o <offset> -h <file>"
@@ -101,6 +101,6 @@ func checkFile(path string) {
 		log.Fatalf("fatal: cannot stat %s", path)
 	}
 	if st.IsDir() {
-		log.Fatal("fatal: %s is a directory", path)
+		log.Fatalf("fatal: %s is a directory", path)
 	}
 }
